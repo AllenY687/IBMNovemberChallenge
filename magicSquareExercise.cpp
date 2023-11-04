@@ -1,4 +1,10 @@
-#include <bits/stdc++.h>
+// #include <bits/stdc++.h>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <queue>
+#include <set>
+
 using namespace std;
 
 
@@ -24,7 +30,7 @@ void interpret_file(string filename) {
 }
 
 // decoding and encoding grids
-long long hash_grid(int[][]* grid) {
+long long hash_grid(int (*grid)[4][4]) {
     long long hash = 0;
     for (int y = 0; y < 4; y++) {
         for (int x = 0; x < 4; x++) {
@@ -34,17 +40,19 @@ long long hash_grid(int[][]* grid) {
     return hash;
 }
 
-void unhash_grid(int[][]* grid, long long hash) {
+void unhash_grid(int (*grid)[4][4], long long hash)
+{
     for (int y = 0; y < 4; y++) {
         for (int x = 0; x < 4; x++) {
             long long mask = 0b1111 << (y * 4 + x);
-            grid[x][y] = (hash & mask) >> (y * 4 + x);
+            (*grid)[x][y] = (hash & mask) >> (y * 4 + x);
         }
     }
 }
 
 // Function that processes grid and returns a list of possible moves
-vector<int> get_moves(int[][]* grid) {
+vector<int> get_moves(int (*grid)[4][4])
+{
     vector<int> moves;
     int x, y;
     // find the empty space
@@ -86,5 +94,5 @@ void bfs(long long st) {
 vector<int> path;
 
 int main() {
-
+    return 0;
 }
