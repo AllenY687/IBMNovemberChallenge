@@ -4,6 +4,8 @@
 #include <vector>
 #include <queue>
 #include <set>
+#include <sstream>
+#include <array>
 
 using namespace std;
 
@@ -17,16 +19,42 @@ int sol2[4][4] = {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 1, 12}, {13, 15, 14, 0}};
 
 // need interpreter, import txt file, convert to list of boardstates
 
-short magic_s[7040][4][4];
+// short magic_s[7040][4][4];
 
-void interpret_file(string filename) {
+array<array<array<short, 4>, 4>, 7040> interpret_file(string filename)
+{
     ifstream inputFile(filename);
-    if (!inputFile.is_open()) {
-        cerr << "Failed to open the input file." << std::endl;
+    array<array<array<short, 4>, 4>, 7040> magic_s{};
+
+    if (!inputFile.is_open())
+    {
+        cerr << "Failed to open the input file." << endl;
+        return magic_s; // Return empty array as file opening failed
     }
 
-    // write to magic_s from file
-    
+    string line;
+    int gridIndex = -1;
+    int row = 0;
+
+    while (getline(inputFile, line))
+    {
+        if (line[0] == '#')
+        {
+            gridIndex++;
+            row = 0;
+        }
+        else
+        {
+            istringstream iss(line);
+            for (int col = 0; col < 4; col++)
+            {
+                iss >> magic_s[gridIndex][row][col];
+            }
+            row++;
+        }
+    }
+
+    return magic_s;
 }
 
 // decoding and encoding grids
@@ -94,5 +122,18 @@ void bfs(long long st) {
 vector<int> path;
 
 int main() {
+    array<array<array<short, 4>, 4>, 7040> magic_s = interpret_file("magicSquares.txt");
+    // output magic_s value
+    for (int i = 0; i < 7040; i++) {
+        for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 3; k++) {
+                cout << magic_s[i][j][k] << " ";
+            }
+            cout << magic_s[i][j][3] << endl;
+        }
+        cout << endl;
+    }
+
+
     return 0;
 }
