@@ -58,25 +58,29 @@ array<array<array<short, 4>, 4>, 7040> interpret_file(string filename)
 }
 
 // decoding and encoding grids
-long long hash_grid(short (grid)[4][4]) {
-    long long hash = 0;
-    for (int y = 0; y < 4; y++) {
-        for (int x = 0; x < 4; x++) {
-            hash += *grid[x][y] << (y * 4 + x);
-        }
-    }
-    return hash;
+// encoding format: sol1 -> 0x123456789ABCDEF0, sol2 -> 0x123456789ABCDFE0
+long long hash_grid(short grid[4][4]) {
+	// params: grid to be hashed
+	// return: hashed value (64 bit long)
+	long long hash = 0;
+	for (char y = 0; y < 4; y++) {
+		for (char x = 0; x < 4; x++) {
+			int offset = ((3-y) * 4 + (3-x)) * 4;
+			hash += (long long) grid[y][x] << offset;
+		}
+	}
+	return hash;
 }
-// {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}, {13, 14, 15, 0}} becomes 0b0001001000110100010101100111100010011010101111001101111011110000 = 1311768467463790320 which is 123456789abcde0 in hex
-
-void unhash_grid(short (grid)[4][4], long long hash)
-{
-    for (int y = 0; y < 4; y++) {
-        for (int x = 0; x < 4; x++) {
-            long long mask = 0b1111 << (y * 4 + x);
-            (*grid)[x][y] = (hash & mask) >> (y * 4 + x);
-        }
-    }
+void unhash_grid(short grid[4][4], long long hash) {
+	// params: return grid, hashed grid
+	// unhashes grid and stores into return grid
+	for (int y = 0; y < 4; y++) {
+		for (int x = 0; x < 4; x++) {
+			int offset = ((3-y) * 4 + (3-x)) * 4;
+			long long mask = (long long) 0xF << offset;
+			grid[y][x] = (hash & mask) >> offset;
+		}
+	}
 }
 
 // Function that outputs true or false depending on solvability of square
