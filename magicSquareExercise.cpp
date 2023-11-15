@@ -6,55 +6,51 @@
 #include <set>
 #include <sstream>
 #include <array>
+#include <map>
 
 using namespace std;
 
+// defining default boardstates
 
-int start[4][4] = {{13, 15, 2, 0}, {8, 1, 14, 7}, {3, 10, 5, 12}, {6, 4, 9, 11}}; // temp magic square
+short start[4][4] = {{13, 15, 2, 0}, {8, 1, 14, 7}, {3, 10, 5, 12}, {6, 4, 9, 11}}; // temp magic square
 
 // solution 1 is the "true" solution
 // solution 2 is the "false" solution, switched 14 and 15 from true solution
-int sol1[4][4] = {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 1, 12}, {13, 14, 15, 0}};
-int sol2[4][4] = {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 1, 12}, {13, 15, 14, 0}};
+short sol1[4][4] = {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 1, 12}, {13, 14, 15, 0}};
+short sol2[4][4] = {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 1, 12}, {13, 15, 14, 0}};
 
-// need interpreter, import txt file, convert to list of boardstates
+// interpreter, import txt file, convert to list of boardstates
 
-// short magic_s[7040][4][4];
-
-array<array<array<short, 4>, 4>, 7040> interpret_file(string filename)
-{
+array<array<array<short, 4>, 4>, 7040> interpret_file(string filename) {
+    // params: filename
+    // return: array of magic squares
     ifstream inputFile(filename);
-    array<array<array<short, 4>, 4>, 7040> magic_s{};
+    array<array<array<short, 4>, 4>, 7040> magic_s{}; // generating empty array of boardstates
 
-    if (!inputFile.is_open())
-    {
+    if (!inputFile.is_open()) {
         cerr << "Failed to open the input file." << endl;
         return magic_s; // Return empty array as file opening failed
     }
 
     string line;
-    int gridIndex = -1;
-    int row = 0;
+    int gridIndex = -1; // boardstate number #N
+    int row = 0; // magic square row
 
-    while (getline(inputFile, line))
-    {
-        if (line[0] == '#')
-        {
+    while (getline(inputFile, line)) { // check that there are still lines to read
+        if (line[0] == '#') { // check for new squares
             gridIndex++;
             row = 0;
         }
-        else
-        {
-            istringstream iss(line);
-            for (int col = 0; col < 4; col++)
-            {
+        else {
+            istringstream iss(line); // iterate through values to generate grid row
+            for (int col = 0; col < 4; col++) {
                 iss >> magic_s[gridIndex][row][col];
             }
-            row++;
+            row++; // advance row 
         }
     }
 
-    return magic_s;
+    return magic_s; // return final array
 }
 
 // decoding and encoding grids
@@ -83,29 +79,44 @@ void unhash_grid(short grid[4][4], long long hash) {
 	}
 }
 
-// Function that outputs true or false depending on solvability of square
-// source: https://www.geeksforgeeks.org/check-instance-15-puzzle-solvable/
-bool check_solvable(long long hash) {
-    bool solvable;
+// get number from the hash by index macros
+short get_hash_n(char n, long long grid) {
+    // params: index, hash
+    // return: value at index
+    long long mask = (long long) 0xF << (15-n)*4;
+    return (grid & mask) >> (15-n);
+} 
+short get_hash_xy(char x, char y, long long grid) {
+    // params: x, y, hash
+    // return: value at x, y
     
-    short row;
-    short inversions;
+    return get_hash_n(4 * y + x, grid);
+} 
 
-    for (short i = 0; i < 16; i++) {
-        if (i != 15) {
-            if (hash[i] > hash[i+1]) {
-                inversions++;
+// Function that outputs true or false depending on solvability of square
+// True => use sol1 as solved state
+// False => use sol2 as solved state
+// source: https://www.geeksforgeeks.org/check-instance-15-puzzle-solvable/
+// replace short[4][4] with long long  hash and use get_hash_n to retrieve values 
+
+bool check_solvable(long long hash) {    
+    short row = 3;
+    short inversions;
+    for (short i = 0; i < 15; i++) {
+        if (get_hash_n(i, hash) == 0) {
+            row = i/4;
+        } else {
+            for (short j = 0; j < 15-i; j++) {
+                if (get_hash_n(i+j, hash) != 0 && get_hash_n(i, hash) > get_hash_n(i+j, hash)) {
+                    inversions++;
+                }
             }
         }
-        
-        if (hash[i] == 0) {
-            row = i/4;
-        }
     }
-    +
     return row%2 != inversions%2;
 }
 
+ // if %2s are not equal for inversions and row#, it's solvable
 // Function that processes grid and returns a list of possible moves
 vector<short> get_moves(short grid[4][4])
 {
@@ -141,43 +152,154 @@ vector<short> get_moves(short grid[4][4])
     return moves;
 }
 
+void generateNewGrid(short newGrid[4][4], short move) {
+    // params: newGrid, move
+    // return: newGrid
+    // generates a new grid based on the move
+    
+    short oldGrid[4][4];
+    copy(&newGrid[0][0], &newGrid[0][0] + 16, &oldGrid[0][0]);
+
+    int x, y;
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            if (oldGrid[i][j] == 0) {
+                x = i;
+                y = j;
+                break;
+            }
+        }
+    }
+    switch (move) {
+        case 0: // move up
+            newGrid[x][y] = oldGrid[x-1][y];
+            newGrid[x-1][y] = 0;
+            break;
+        case 1: // move down
+            newGrid[x][y] = oldGrid[x+1][y];
+            newGrid[x+1][y] = 0;
+            break;
+        case 2: // move left
+            newGrid[x][y] = oldGrid[x][y-1];
+            newGrid[x][y-1] = 0;
+            break;
+        case 3: // move right
+            newGrid[x][y] = oldGrid[x][y + 1];
+            newGrid[x][y + 1] = 0;
+            break;
+    }
+}
+
 // meet in the middle algorithm
+
+// Distance Hashing
+// Map to store the distance of each hashed grid from the start or end
+map<long long, int> distanceMap;
+// Vector to store the distance of each of the nodes visited by the BFS algorithm
+vector<int> dist;
+// Variable to keep track of the number of node
+long long distMapSize = 0;
+
+// Initial variables
 set<long long> visited;
 queue<long long> que1;
 queue<long long> que2;
-void bfs(long long start, long long end) {
+
+// Function to perform the bidirectional BFS
+bool bfs(long long start, long long end) {
+    // params: start, end
+    // return: bool
+    
     que1.push(start);
-while (!que1.empty() || !que2.empty()) {
+    
+    while (!que1.empty() || !que2.empty()) {
         int sz = que1.size();
+        // Process all nodes at the current level
         for (int cnt = 1; cnt <= sz; cnt++) {
+            // Get the next node from the queue
             long long cur = que1.front();que1.pop();
+            // Get the grid from the hash
             short unhashedGrid[4][4] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
             unhash_grid(unhashedGrid, cur);
+            // Get the possible moves from the current grid
             vector<short> moves = get_moves(unhashedGrid);
+            
+            // Process all the possible moves
             for (auto move : moves) {
-                // generate a new grid that incorporates the move
-                short newGrid[4][4]; // generate (todo)
+                // Generate a new grid that incorporates the move
+                short newGrid[4][4];
+                generateNewGrid(newGrid, move);
+                
                 long long hashedNewGrid = hash_grid(newGrid);
 
-                // check if moving into an already visited node
+                // Check if moving into an already visited node
+                if (distanceMap.find(hashedNewGrid) != distanceMap.end() && dist[distanceMap[hashedNewGrid] > 0]) continue;
 
                 // check if the node has already been visited by the other bfs algorithm running from the end. This case results in a "meet in the middle"
+                if (dist[distanceMap[hashedNewGrid]] < 0) {
+                    // The node has been visited by the other BFS algorithm
+                    // Calculate the total distance from the start to the end
+                    int totalDistance = dist[distanceMap[cur]] -  dist[distanceMap[hashedNewGrid]] - 1;
+                    dist[distanceMap[hashedNewGrid]] = totalDistance;
+                    // solution has been found. The hash of the grid is being returned
+                    return true;                
+                }
                 
                 // update distance
-
+                distanceMap[hashedNewGrid] = distMapSize+1;
+                distMapSize++;
+                dist.push_back(dist[distanceMap[cur]]+1);
                 // push into the queue
                 que1.push(hashedNewGrid);
             }
         }
 
         int sz = que2.size();
-        
+        for (int cnt = 1; cnt<=sz; cnt++) {
+            long long cur = que2.front(); que2.pop();
+            short unhashedGrid[4][4] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
+            unhash_grid(unhashedGrid, cur);
+            vector<short> moves = get_moves(unhashedGrid);
+            for (auto move : moves) {
+                // generate a new grid that incorporates the move
+                short newGrid[4][4]; 
+                generateNewGrid(newGrid, move);
+                
+                long long hashedNewGrid = hash_grid(newGrid);
+                // check if moving into an already visited node
+                if (distanceMap.find(hashedNewGrid) != distanceMap.end() && dist[distanceMap[hashedNewGrid] < 0]) continue;
+
+                // check if the node has already been visited by the other bfs algorithm running from the end. This case results in a "meet in the middle"
+                if (dist[distanceMap[hashedNewGrid]] > 0) {
+                    // The node has been visited by the other BFS algorithm
+                    // Calculate the total distance from the start to the end
+                    int totalDistance = -dist[distanceMap[cur]] +  dist[distanceMap[hashedNewGrid]] - 1;
+                    dist[distanceMap[hashedNewGrid]] = totalDistance;
+                    // solution has been found. The hash of the grid is being returned
+                    return true;                
+                }
+                // update distance
+                distanceMap[hashedNewGrid] = distMapSize+1;
+                distMapSize++;
+                dist.push_back(dist[distanceMap[cur]]-1);
+
+                // push into the queue
+                que2.push(hashedNewGrid);
+            }
+        }
     }
+    return false;
 }
 
 vector<int> path;
 
 int main() {;
     array<array<array<short, 4>, 4>, 7040> magic_s = interpret_file("magicSquares.txt");
+
+    // for each magic square
+    // hash array
+    // find solvability
+    // bfs with sol1 if solvable, sol2 if not
+    
     return 0;
 }
