@@ -7,17 +7,19 @@
 #include <sstream>
 #include <array>
 #include <map>
+#include <algorithm>
+#include <iterator>
 
 using namespace std;
 
 // defining default boardstates
 
-short start[4][4] = {{13, 15, 2, 0}, {8, 1, 14, 7}, {3, 10, 5, 12}, {6, 4, 9, 11}}; // temp magic square
-
+// short start[4][4] = {{13, 15, 2, 0}, {8, 1, 14, 7}, {3, 10, 5, 12}, {6, 4, 9, 11}}; // temp magic square
+short start[4][4] = {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 0}, {13, 14, 15, 12}};
 // solution 1 is the "true" solution
 // solution 2 is the "false" solution, switched 14 and 15 from true solution
-short sol1[4][4] = {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 1, 12}, {13, 14, 15, 0}};
-short sol2[4][4] = {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 1, 12}, {13, 15, 14, 0}};
+short sol1[4][4] = {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}, {13, 14, 15, 0}};
+short sol2[4][4] = {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}, {13, 15, 14, 0}};
 
 // interpreter, import txt file, convert to list of boardstates
 
@@ -79,44 +81,61 @@ void unhash_grid(short grid[4][4], long long hash) {
 	}
 }
 
-// get number from the hash by index macros
+// get number from the hash by index
 short get_hash_n(char n, long long grid) {
     // params: index, hash
     // return: value at index
     long long mask = (long long) 0xF << (15-n)*4;
-    return (grid & mask) >> (15-n);
+    return (grid & mask) >> (15-n)*4;
 } 
-short get_hash_xy(char x, char y, long long grid) {
-    // params: x, y, hash
-    // return: value at x, y
-    
-    return get_hash_n(4 * y + x, grid);
-} 
+// set number from the hash by index
+long long set_hash_n(char n, short value, long long grid) {
+    // params: index, value, hash
+    // return: replaces value of hash at index n with value
+    long long zmask = (long long) 0xFFFFFFFFFFFFFFFF - (0xF << (15-n)*4);
+    grid &= zmask;
+    long long amask = (long long) value << (15-n)*4;
+    grid += amask;
+    return grid;
+}
+// print a long long in readable hex
+void print_hex(long long value) {
+    char m[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+    char h[16];
+    for (int i = 0; i < 16; i++) {
+        h[i] = m[value & (long long) 0xF];
+        value = value >> 4;
+    }
+    cout << "0x";
+    for (int i = 15; i >= 0; i--) {
+        cout << h[i];
+    }
+    cout << endl;
+}
 
 // Function that outputs true or false depending on solvability of square
 // True => use sol1 as solved state
 // False => use sol2 as solved state
 // source: https://www.geeksforgeeks.org/check-instance-15-puzzle-solvable/
-// replace short[4][4] with long long  hash and use get_hash_n to retrieve values 
 
 bool check_solvable(long long hash) {    
+    // define variables that will affect whether the square is solvable
     short row = 3;
     short inversions;
     for (short i = 0; i < 15; i++) {
-        if (get_hash_n(i, hash) == 0) {
-            row = i/4;
+        if (get_hash_n(i, hash) == 0) { // search for zero
+            row = i/4; // find row of zero
         } else {
-            for (short j = 0; j < 15-i; j++) {
+            for (short j = 0; j < 15-i; j++) { // iterate through all pairs of tiles
                 if (get_hash_n(i+j, hash) != 0 && get_hash_n(i, hash) > get_hash_n(i+j, hash)) {
-                    inversions++;
+                    inversions++; // inversion detection
                 }
             }
         }
     }
-    return row%2 != inversions%2;
+    return row%2 != inversions%2; // congruence means unsolvability 
 }
 
- // if %2s are not equal for inversions and row#, it's solvable
 // Function that processes grid and returns a list of possible moves
 vector<short> get_moves(short grid[4][4])
 {
@@ -156,14 +175,11 @@ void generateNewGrid(short newGrid[4][4], short move) {
     // params: newGrid, move
     // return: newGrid
     // generates a new grid based on the move
-    
-    short oldGrid[4][4];
-    copy(&newGrid[0][0], &newGrid[0][0] + 16, &oldGrid[0][0]);
 
     int x, y;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
-            if (oldGrid[i][j] == 0) {
+            if (newGrid[i][j] == 0) {
                 x = i;
                 y = j;
                 break;
@@ -172,20 +188,20 @@ void generateNewGrid(short newGrid[4][4], short move) {
     }
     switch (move) {
         case 0: // move up
-            newGrid[x][y] = oldGrid[x-1][y];
+            newGrid[x][y] = newGrid[x-1][y];
             newGrid[x-1][y] = 0;
             break;
         case 1: // move down
-            newGrid[x][y] = oldGrid[x+1][y];
+            newGrid[x][y] = newGrid[x+1][y];
             newGrid[x+1][y] = 0;
             break;
         case 2: // move left
-            newGrid[x][y] = oldGrid[x][y-1];
+            newGrid[x][y] = newGrid[x][y-1];
             newGrid[x][y-1] = 0;
             break;
         case 3: // move right
-            newGrid[x][y] = oldGrid[x][y + 1];
-            newGrid[x][y + 1] = 0;
+            newGrid[x][y] = newGrid[x][y + 1];
+            newGrid[x][y+1] = 0;
             break;
     }
 }
@@ -198,26 +214,30 @@ map<long long, int> distanceMap;
 // Vector to store the distance of each of the nodes visited by the BFS algorithm
 vector<int> dist;
 // Variable to keep track of the number of node
-long long distMapSize = 0;
+long long distMapSize = 2;
 
 // Initial variables
 set<long long> visited;
 queue<long long> que1;
 queue<long long> que2;
+int depth = 0;
+const int MAX_DEPTH = 25;
 
 // Function to perform the bidirectional BFS
 bool bfs(long long start, long long end) {
     // params: start, end
     // return: bool
-    
     que1.push(start);
     
     while (!que1.empty() || !que2.empty()) {
         int sz = que1.size();
         // Process all nodes at the current level
+        depth++;
+        if (depth > MAX_DEPTH) return false;
         for (int cnt = 1; cnt <= sz; cnt++) {
             // Get the next node from the queue
             long long cur = que1.front();que1.pop();
+            print_hex(cur);
             // Get the grid from the hash
             short unhashedGrid[4][4] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
             unhash_grid(unhashedGrid, cur);
@@ -227,7 +247,9 @@ bool bfs(long long start, long long end) {
             // Process all the possible moves
             for (auto move : moves) {
                 // Generate a new grid that incorporates the move
+                //copy unhashedGrid
                 short newGrid[4][4];
+                unhash_grid(newGrid, cur);
                 generateNewGrid(newGrid, move);
                 
                 long long hashedNewGrid = hash_grid(newGrid);
@@ -246,7 +268,7 @@ bool bfs(long long start, long long end) {
                 }
                 
                 // update distance
-                distanceMap[hashedNewGrid] = distMapSize+1;
+                distanceMap[hashedNewGrid] = distMapSize;
                 distMapSize++;
                 dist.push_back(dist[distanceMap[cur]]+1);
                 // push into the queue
@@ -254,7 +276,7 @@ bool bfs(long long start, long long end) {
             }
         }
 
-        int sz = que2.size();
+        sz = que2.size();
         for (int cnt = 1; cnt<=sz; cnt++) {
             long long cur = que2.front(); que2.pop();
             short unhashedGrid[4][4] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
@@ -294,12 +316,22 @@ bool bfs(long long start, long long end) {
 vector<int> path;
 
 int main() {;
+    generateNewGrid(start, 1);
+    
+
     array<array<array<short, 4>, 4>, 7040> magic_s = interpret_file("magicSquares.txt");
 
     // for each magic square
     // hash array
     // find solvability
     // bfs with sol1 if solvable, sol2 if not
+
+    distanceMap[hash_grid(start)] = 0;
+    dist.push_back(1);
+    distanceMap[hash_grid(sol1)] = 1;
+    dist.push_back(-1);
+
+    cout << (bfs(hash_grid(start), hash_grid(sol1))? "Solved" : "Not a Solution");
     
     return 0;
 }
