@@ -105,6 +105,29 @@ void interpret_file(string filename, unsigned long long results[7040]) {
 
 }
 
+// Function that outputs true or false depending on solvability of square
+// True => use sol1 as solved state
+// False => use sol2 as solved state
+// source: https://www.geeksforgeeks.org/check-instance-15-puzzle-solvable/
+
+bool check_solvable(unsigned long long hash) {    
+    // define variables that will affect whether the square is solvable
+    short row = 3;
+    short inversions;
+    for (short i = 0; i < 15; i++) {
+        if (get_hash_n(i, hash) == 0) { // search for zero
+            row = i/4; // find row of zero
+        } else {
+            for (short j = 0; j < 15-i; j++) { // iterate through all pairs of tiles
+                if (get_hash_n(i+j, hash) != 0 && get_hash_n(i, hash) > get_hash_n(i+j, hash)) {
+                    inversions++; // inversion detection
+                }
+            }
+        }
+    }
+    return row%2 != inversions%2; // congruence means unsolvability 
+}
+
 void get_moves(unsigned long long results[4], unsigned long long hash) {
 	// find 0 index
 	char nz;
@@ -181,21 +204,22 @@ bool bfs(unsigned long long start, unsigned long long end) {
 	return false;
 }
 
+
+// TODO: implement precalculation of forward map
 int main() {
 
 	unsigned long long results[7040];
 	interpret_file("magicSquares.txt", results);
 	print_hex(results[0]);
-
-	//if (bfs(0x123456789ABCDEF0, 0x01EFBD24C6937A58)) {
-	//	cout << "Solved" << endl;
-	//}
-	//else {
-	//	cout << "Unsolved" << endl;
-	//}
-	// print_hex(set_hash_n(8, 0, 0x123456789ABC0DEF));
+	
+	for (int i = 0; i < 7040; i++) {
+		if (check_solvable(results[i])) {
+			cout << (bfs(0x123456789ABCDEF0, results[i]) ? "Solved" : "Unsolved");
+		}
+		else {
+			cout << (bfs(0x123456789ABCDE0F, results[i]) ? "Solved" : "Unsolved");
+		}
+	}
 
 	return 0;
 }
-
-
