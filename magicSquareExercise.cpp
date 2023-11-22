@@ -14,7 +14,8 @@ using namespace std;
 
 // defining default boardstates
 
-short start[4][4] = {{13, 15, 2, 0}, {8, 1, 14, 7}, {3, 10, 5, 12}, {6, 4, 9, 11}}; // temp magic square
+//short start[4][4] = {{13, 15, 2, 0}, {8, 1, 14, 7}, {3, 10, 5, 12}, {6, 4, 9, 11}}; // temp magic square
+short start[4][4] = {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}, {0, 13, 14, 15}};
 // solution 1 is the "true" solution
 // solution 2 is the "false" solution, switched 14 and 15 from true solution
 short sol1[4][4] = {{1, 2, 3, 4}, {5, 6, 7, 8}, {9, 10, 11, 12}, {13, 14, 15, 0}};
@@ -357,10 +358,7 @@ bool bfs(unsigned long long start, unsigned long long end) {
 int main() {;
     // preprocessing
     array<array<array<short, 4>, 4>, 7040> magic_s = interpret_file("magicSquares.txt");
-    distanceMap[hash_grid(start)] = 0;
-    dist.push_back(1);
-    distanceMap[hash_grid(sol1)] = 1;
-    dist.push_back(-1);
+    
     
     // for each magic square
     for (array<array<short, 4>, 4> magicSqTmp : magic_s) {
@@ -378,9 +376,23 @@ int main() {;
         
         // bfs with sol1 if solvable, sol2 if not
         if (solvableSol1) {
-            cout << (bfs(hash_grid(start), hash_grid(sol1))? "Solved" : "Not a Solution");
+            distanceMap[hash_grid(magicSquare)] = 0;
+            dist.push_back(1);
+            distanceMap[hash_grid(sol1)] = 1;
+            dist.push_back(-1);
+            cout << (bfs(hash_grid(magicSquare), hash_grid(sol1))? "Solved" : "Not a Solution");
+            print_grid(magicSquare);
+            distanceMap.clear();
+            dist.clear();
         } else {
-            cout << (bfs(hash_grid(start), hash_grid(sol2))? "Solved" : "Not a Solution");
+            distanceMap[hash_grid(magicSquare)] = 0;
+            dist.push_back(1);
+            distanceMap[hash_grid(sol2)] = 1;
+            dist.push_back(-1);
+            cout << (bfs(hash_grid(magicSquare), hash_grid(sol2))? "Solved" : "Not a Solution");
+            print_grid(magicSquare);
+            distanceMap.clear();
+            dist.clear();
         }
     }
     return 0;
