@@ -172,69 +172,6 @@ void get_moves(unsigned long long results[4], unsigned long long hash) {
 	results[2] = (y != 0) ? swap_hash_ns(nz, nz-4, hash) : 0x0;
 	results[3] = (y != 3) ? swap_hash_ns(nz, nz+4, hash) : 0x0;
 }
-// breadth first search meet in the middle implementation with start and end
-bool bfs(unsigned long long start, unsigned long long end) {
-	// params: start and end grid
-	// returns: if a path exists
-
-	// fowards and backwards queue
-	queue<unsigned long long> fqc, bqc;
-	// forwards and backwards maps
-	unordered_map<unsigned long long, char> fmp, bmp;
-
-	// depth markers
-	int current_depth = 0;
-	
-	// push the beginning and end nodes to queues
-	fqc.push(start);
-	fmp[start] = 1;
-	bqc.push(end);
-	bmp[end] = 1;
-
-	while (current_depth < 25) {
-		// get current forward and backwards grids
-		unsigned long long current_grid_f = fqc.front(); fqc.pop();
-		unsigned long long current_grid_b = bqc.front(); bqc.pop();
-		
-		// get next moves
-		unsigned long long forward_next_moves[4];
-		unsigned long long backward_next_moves[4];
-		get_moves(forward_next_moves, current_grid_f);
-		get_moves(backward_next_moves, current_grid_b);
-
-		for (int i = 0; i < 4; i++) {
-			// for each next moves
-			unsigned long long f_move = forward_next_moves[i];
-			unsigned long long b_move = backward_next_moves[i];
-			
-			if (!(f_move == 0x0 || fmp[f_move] > 0)) {
-				// solution found
-				if (bmp[f_move]) return true;
-				// solution not found
-				else {
-					fqc.push(f_move);
-					fmp[f_move] = fmp[current_grid_f] + 1;
-					// update depth
-					if (fmp[f_move] > current_depth) {
-					       current_depth++;
-					       print_hex(f_move);
-					       cout << endl;
-					}
-				}
-			}
-			if (!(b_move == 0x0 || bmp[b_move] > 0)) {
-				// solution found
-				if (fmp[b_move]) return true;
-				// solution not found
-				else {
-					bqc.push(b_move);
-					bmp[b_move] = bmp[current_grid_b] + 1;
-				}
-			}
-		}
-	}
-	return false;
-}
 // breadth first search meet in the middle with precalculated forward propogation map
 long long bfs_precalc(unordered_map<unsigned long long, char> fmp, unsigned long long end) {
 	// params: forward propogation map, ending grid
@@ -478,4 +415,66 @@ bool check_solvable(unsigned long long hash) {
 	return row%2 != inversions%2; // congruence means unsolvability 
 }
 
+// LEGACY: breadth first search meet in the middle implementation with start and end
+bool bfs(unsigned long long start, unsigned long long end) {
+	// params: start and end grid
+	// returns: if a path exists
 
+	// fowards and backwards queue
+	queue<unsigned long long> fqc, bqc;
+	// forwards and backwards maps
+	unordered_map<unsigned long long, char> fmp, bmp;
+
+	// depth markers
+	int current_depth = 0;
+	
+	// push the beginning and end nodes to queues
+	fqc.push(start);
+	fmp[start] = 1;
+	bqc.push(end);
+	bmp[end] = 1;
+
+	while (current_depth < 25) {
+		// get current forward and backwards grids
+		unsigned long long current_grid_f = fqc.front(); fqc.pop();
+		unsigned long long current_grid_b = bqc.front(); bqc.pop();
+		
+		// get next moves
+		unsigned long long forward_next_moves[4];
+		unsigned long long backward_next_moves[4];
+		get_moves(forward_next_moves, current_grid_f);
+		get_moves(backward_next_moves, current_grid_b);
+
+		for (int i = 0; i < 4; i++) {
+			// for each next moves
+			unsigned long long f_move = forward_next_moves[i];
+			unsigned long long b_move = backward_next_moves[i];
+			
+			if (!(f_move == 0x0 || fmp[f_move] > 0)) {
+				// solution found
+				if (bmp[f_move]) return true;
+				// solution not found
+				else {
+					fqc.push(f_move);
+					fmp[f_move] = fmp[current_grid_f] + 1;
+					// update depth
+					if (fmp[f_move] > current_depth) {
+					       current_depth++;
+					       print_hex(f_move);
+					       cout << endl;
+					}
+				}
+			}
+			if (!(b_move == 0x0 || bmp[b_move] > 0)) {
+				// solution found
+				if (fmp[b_move]) return true;
+				// solution not found
+				else {
+					bqc.push(b_move);
+					bmp[b_move] = bmp[current_grid_b] + 1;
+				}
+			}
+		}
+	}
+	return false;
+}
