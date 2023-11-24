@@ -144,7 +144,7 @@ void get_moves(unsigned long long results[4], unsigned long long hash) {
 	results[3] = (y != 3) ? swap_hash_ns(nz, nz+4, hash) : 0x0;
 }
 
-bool bfs(unordered_map<unsigned long long, char>* fmp, unordered_map<unsigned long long, char>* bmp, unsigned long long end) {
+bool bfs(unordered_map<unsigned long long, char>* fmp, unordered_map<unsigned long long, char>* bmp, unsigned long long end, int depth) {
 	// fowards and backwards queue
 	queue<unsigned long long> bqc;
 	// forwards and backwards maps
@@ -159,7 +159,7 @@ bool bfs(unordered_map<unsigned long long, char>* fmp, unordered_map<unsigned lo
 	cout << "Searching: ";
 	print_hex(end);
 
-	while (current_depth < 22) {
+	while (current_depth < depth) {
 		// get current forward and backwards grids
 		unsigned long long current_grid_b = bqc.front(); bqc.pop();
 		
@@ -194,44 +194,6 @@ bool bfs(unordered_map<unsigned long long, char>* fmp, unordered_map<unsigned lo
 	return false;
 }
 
-void precalc_fmp(unsigned long long start, unordered_map<unsigned long long, char>* map, char depth) {
-
-	queue<unsigned long long> fqc;
-
-	int current_depth = 0;
-	fqc.push(start);
-	(*map)[start] = 1;
-
-	cout << "Precalculating: ";
-	print_hex(start);
-
-	while (current_depth < depth) {
-		
-		unsigned long long grid = fqc.front(); fqc.pop();
-
-		unsigned long long moves[4];
-		get_moves(moves, grid);
-
-		for (int i = 0; i < 4; i++) {
-			unsigned long long move = moves[i];
-
-			if (!(move == 0x0 || (*map)[move] > 0)) {
-				
-				fqc.push(move);
-				(*map)[move] = (*map)[grid] + 1;
-
-				if ((*map)[move] > current_depth) {
-					current_depth++;
-					cout << "Depth " << current_depth << ": ";
-					print_hex(move);
-				}
-			}
-		}
-	}
-
-}
-
-
 // TODO: implement precalculation of forward map
 int main() {
 
@@ -239,15 +201,15 @@ int main() {
 	interpret_file("magicSquares.txt", results);
 	print_hex(results[0]);
 
-	unordered_map<unsigned long long, char> fmp1, fmp2;
-	precalc_fmp(0x123456789ABCDEF0, &fmp1, 28);
-	precalc_fmp(0x123456789ABCDFE0, &fmp2, 28);
+	unordered_map<unsigned long long, char> fmp1, fmp2, bmp;
+	bfs(&bmp, &fmp1, 0x123456789ABCDEF0, 28);
+	bfs(&bmp, &fmp2, 0x123456789ABCDFE0, 28);
 	
 	unordered_map<unsigned long long, char> bmp;
 
-	for (int i = 16; i < 7040; i++) {
+	for (int i = 0; i < 7040; i++) {
 		if (check_solvable(results[i])) {
-			bool answer = bfs(&fmp1, &bmp, results[i]);
+			bool answer = bfs(&fmp1, &bmp, results[i], 20);
 			if (answer) {
 				cout << "Solved" << endl;
 				return 0;
@@ -255,7 +217,7 @@ int main() {
 			cout << (answer ? "Solved" : "Unsolved") << endl;
 		}
 		else {
-			bool answer = bfs(&fmp2, &bmp, results[i]);
+			bool answer = bfs(&fmp2, &bmp, results[i], 20);
 			if (answer) {
 				cout << "Solved" << endl;
 				return 0;
