@@ -201,11 +201,10 @@ int main() {
 	interpret_file("magicSquares.txt", results);
 	print_hex(results[0]);
 
+    // 5 gb memory usage for precalculation
 	unordered_map<unsigned long long, char> fmp1, fmp2, bmp;
 	bfs(&bmp, &fmp1, 0x123456789ABCDEF0, 28);
 	bfs(&bmp, &fmp2, 0x123456789ABCDFE0, 28);
-	
-	unordered_map<unsigned long long, char> bmp;
 
 	for (int i = 0; i < 7040; i++) {
 		if (check_solvable(results[i])) {
