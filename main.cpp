@@ -144,64 +144,91 @@ void get_moves(unsigned long long results[4], unsigned long long hash) {
 	results[3] = (y != 3) ? swap_hash_ns(nz, nz+4, hash) : 0x0;
 }
 
-bool bfs(unsigned long long start, unsigned long long end) {
+bool bfs(unordered_map<unsigned long long, char>* fmp, unordered_map<unsigned long long, char>* bmp, unsigned long long end) {
 	// fowards and backwards queue
-	queue<unsigned long long> fqc, bqc;
+	queue<unsigned long long> bqc;
 	// forwards and backwards maps
-	unordered_map<unsigned long long, char> fmp, bmp;
-
+	
 	// depth markers
 	int current_depth = 0;
-	unsigned long long current_depth_marker = start;
 	
 	// push the beginning and end nodes to queues
-	fqc.push(start);
-	fmp[start] = 1;
 	bqc.push(end);
-	bmp[end] = 1;
+	(*bmp)[end] = 1;
 
-	while (current_depth < 25) {
+	cout << "Searching: ";
+	print_hex(end);
+
+	while (current_depth < 22) {
 		// get current forward and backwards grids
-		unsigned long long current_grid_f = fqc.front(); fqc.pop();
 		unsigned long long current_grid_b = bqc.front(); bqc.pop();
 		
 		// get next moves
-		unsigned long long forward_next_moves[4];
 		unsigned long long backward_next_moves[4];
-		get_moves(forward_next_moves, current_grid_f);
 		get_moves(backward_next_moves, current_grid_b);
 
 		for (int i = 0; i < 4; i++) {
 			// for each next moves
-			unsigned long long f_move = forward_next_moves[i];
 			unsigned long long b_move = backward_next_moves[i];
 			
-			if (!(f_move == 0x0 || fmp[f_move] > 0)) {
+			if (!(b_move == 0x0 || (*bmp)[b_move] > 0)) {
 				// solution found
-				if (bmp[f_move]) return true;
-				// solution not found
-				else {
-					fqc.push(f_move);
-					fmp[f_move] = fmp[current_grid_f] + 1;
-					// update depth
-					if (fmp[f_move] > current_depth) {
-					       current_depth++;
-					       print_hex(f_move);
-					}
+				if ((*fmp)[b_move]) {
+					bmp->clear();
+					return true;
 				}
-			}
-			if (!(b_move == 0x0 || bmp[b_move] > 0)) {
-				// solution found
-				if (fmp[b_move]) return true;
 				// solution not found
 				else {
 					bqc.push(b_move);
-					bmp[b_move] = bmp[current_grid_b] + 1;
+					(*bmp)[b_move] = (*bmp)[current_grid_b] + 1;
+					if ((*bmp)[b_move] > current_depth) {
+						current_depth++;
+						cout << "Depth " << current_depth << ": ";
+						print_hex(b_move);
+					}
 				}
 			}
 		}
 	}
+	bmp->clear();
 	return false;
+}
+
+void precalc_fmp(unsigned long long start, unordered_map<unsigned long long, char>* map, char depth) {
+
+	queue<unsigned long long> fqc;
+
+	int current_depth = 0;
+	fqc.push(start);
+	(*map)[start] = 1;
+
+	cout << "Precalculating: ";
+	print_hex(start);
+
+	while (current_depth < depth) {
+		
+		unsigned long long grid = fqc.front(); fqc.pop();
+
+		unsigned long long moves[4];
+		get_moves(moves, grid);
+
+		for (int i = 0; i < 4; i++) {
+			unsigned long long move = moves[i];
+
+			if (!(move == 0x0 || (*map)[move] > 0)) {
+				
+				fqc.push(move);
+				(*map)[move] = (*map)[grid] + 1;
+
+				if ((*map)[move] > current_depth) {
+					current_depth++;
+					cout << "Depth " << current_depth << ": ";
+					print_hex(move);
+				}
+			}
+		}
+	}
+
 }
 
 
@@ -211,13 +238,29 @@ int main() {
 	unsigned long long results[7040];
 	interpret_file("magicSquares.txt", results);
 	print_hex(results[0]);
+
+	unordered_map<unsigned long long, char> fmp1, fmp2;
+	precalc_fmp(0x123456789ABCDEF0, &fmp1, 28);
+	precalc_fmp(0x123456789ABCDFE0, &fmp2, 28);
 	
-	for (int i = 0; i < 7040; i++) {
+	unordered_map<unsigned long long, char> bmp;
+
+	for (int i = 16; i < 7040; i++) {
 		if (check_solvable(results[i])) {
-			cout << (bfs(0x123456789ABCDEF0, results[i]) ? "Solved" : "Unsolved");
+			bool answer = bfs(&fmp1, &bmp, results[i]);
+			if (answer) {
+				cout << "Solved" << endl;
+				return 0;
+			}
+			cout << (answer ? "Solved" : "Unsolved") << endl;
 		}
 		else {
-			cout << (bfs(0x123456789ABCDE0F, results[i]) ? "Solved" : "Unsolved");
+			bool answer = bfs(&fmp2, &bmp, results[i]);
+			if (answer) {
+				cout << "Solved" << endl;
+				return 0;
+			}
+			cout << (answer ? "Solved" : "Unsolved") << endl;
 		}
 	}
 
